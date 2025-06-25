@@ -1,5 +1,7 @@
 #include "cave_components.hpp"
+#include <algorithm>
 #include <iostream>
+#include <queue>
 #include <stream_guardian.hpp>
 
 namespace
@@ -37,6 +39,26 @@ char zakirov::CaveComponent::setCell(char cell) noexcept
   cell_ = cell;
 }
 
+int zakirov::CaveComponent::getDist()
+{
+  return dist_;
+}
+
+int zakirov::CaveComponent::setDist(int dist)
+{
+  dist_ = dist;
+}
+
+void zakirov::CaveComponent::visitCell()
+{
+  visit_ = true;
+}
+
+bool zakirov::CaveComponent::isVisited()
+{
+  return visit_;
+}
+
 bool zakirov::CaveComponent::isWall() const noexcept
 {
   return cell_ == '#';
@@ -67,6 +89,33 @@ void zakirov::CaveLayer::setCords(std::pair< int, int > cords) noexcept
   cords_ = cords;
 }
 
+zakirov::CaveLayer & zakirov::CaveLayer::getPath()
+{
+  std::queue< int > bypass;
+  cave_[scopes_.first].first.visitCell();
+  bypass.push(scopes_.first);
+  while (!bypass.empty())
+  {
+    int pos = bypass.front();
+    int curr_distance = cave_[pos].first.getDist();
+    bypass.pop();
+    for (auto i = cave_[pos].second.begin(); i != cave_[pos].second.end(); ++i)
+    {
+      if (!cave_[*i].first.isVisited() && !cave_[*i].first.isWall())
+      {
+        cave_[*i].first.setDist(curr_distance + 1);
+        cave_[*i].first.visitCell();
+        bypass.push(*i);
+      }
+    }
+
+    if (cave_[scopes_.second].first.isVisited())
+    {
+      break;
+    }
+  }
+}
+
 bool zakirov::CaveLayer::isScopes()
 {
   return scopes_.first != -1 || scopes_.second != -1;
@@ -82,25 +131,10 @@ void zakirov::CaveLayer::setName(char name) noexcept
   name_ = name;
 }
 
-void zakirov::CaveLayer::addElement(int key, CaveComponent & cell)
-{
-  std::list< int > edges;
-  cave_map_.insert({key, {cell, {}}});
-  addEdges(key);
-  if (cell.isEntry())
-  {
-    scopes_.first = key;
-  }
-  else if (cell.isExit())
-  {
-    scopes_.second = key;
-  }
-}
-
 void zakirov::CaveLayer::addEdge(int key1, int key2)
 {
-  cave_map_[key1].second.push_back(key2);
-  cave_map_[key2].second.push_back(key1);
+  cave_[key1].second.push_back(key2);
+  cave_[key2].second.push_back(key1);
 }
 
 void zakirov::CaveLayer::addEdges(int key)
@@ -114,6 +148,31 @@ void zakirov::CaveLayer::addEdges(int key)
   {
     addEdge(key, key - cords_.first);
   }
+}
+
+void zakirov::CaveLayer::addCell(int key, CaveComponent & cell)
+{
+  std::list< int > edges;
+  cave_.insert({key, {cell, {}}});
+  addEdges(key);
+  if (cell.isEntry())
+  {
+    scopes_.first = key;
+    cell.setDist(0);
+  }
+  else if (cell.isExit())
+  {
+    scopes_.second = key;
+  }
+  else
+  {
+    cell.setDist(-1);
+  }
+}
+
+zakirov::CaveComponent & zakirov::CaveLayer::getCell(int key)
+{
+  return cave_[key].first;
 }
 
 std::istream & zakirov::operator>>(std::istream & in, zakirov::CaveComponent & comp_c)
@@ -145,11 +204,11 @@ std::istream & zakirov::operator>>(std::istream & in, zakirov::CaveLayer & layer
   for (size_t i = 0; i < width; ++i)
   {
     in >> inserter;
-    layer_c.addElement(key, inserter);
+    layer_c.addCell(key, inserter);
     for (size_t j = 0; j < length - 1; ++j)
     {
       in >> MinorSymbol{' '} >> inserter;
-      layer_c.addElement(key, inserter);
+      layer_c.addCell(key, inserter);
     }
 
     in >> MinorSymbol{'\n'};
