@@ -3,6 +3,8 @@
 #include <map>
 #include <iostream>
 #include <string>
+#include <list>
+
 namespace zakirov
 {
   class CaveComponent
@@ -21,18 +23,20 @@ namespace zakirov
   class CaveLayer
   {
   public:
-    CaveLayer(std::istream & in);
     CaveLayer getPath();
+    bool isScopes();
     std::pair< int, int > getCords() const noexcept;
     void setCords(std::pair< int, int > cords) noexcept;
     char getName() const noexcept;
     void setName(char name) noexcept;
-    void addElement(int key, CaveComponent cell);
-    void addEdge(int u, char v);
+    void addEdge(int key1, int key2);
+    void addEdges(int key);
+    void addElement(int key, CaveComponent & cell);
   private:
-    std::map< int, std::map< int, CaveComponent > > cave_map_;
+    std::map< int, std::pair< CaveComponent, std::list< int > > > cave_map_;
     char name_;
     std::pair< int, int > cords_;
+    std::pair< int, int > scopes_;
   };
 
   std::istream & operator>>(std::istream & in, CaveComponent & comp_c);

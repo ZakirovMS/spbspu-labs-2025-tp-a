@@ -27,6 +27,16 @@ namespace
   }
 }
 
+char zakirov::CaveComponent::getCell() const noexcept
+{
+  return cell_;
+}
+
+char zakirov::CaveComponent::setCell(char cell) noexcept
+{
+  cell_ = cell;
+}
+
 bool zakirov::CaveComponent::isWall() const noexcept
 {
   return cell_ == '#';
@@ -45,6 +55,65 @@ bool zakirov::CaveComponent::isEntry() const noexcept
 bool zakirov::CaveComponent::isExit() const noexcept
 {
  return (cell_ == '=' || (cell_ > 'a' && cell_ < 'z') || (cell_ > 'A' && cell_ < 'Z'));
+}
+
+std::pair< int, int > zakirov::CaveLayer::getCords() const noexcept
+{
+  return cords_;
+}
+
+void zakirov::CaveLayer::setCords(std::pair< int, int > cords) noexcept
+{
+  cords_ = cords;
+}
+
+bool zakirov::CaveLayer::isScopes()
+{
+  return scopes_.first != -1 || scopes_.second != -1;
+}
+
+char zakirov::CaveLayer::getName() const noexcept
+{
+  return name_;
+}
+
+void zakirov::CaveLayer::setName(char name) noexcept
+{
+  name_ = name;
+}
+
+void zakirov::CaveLayer::addElement(int key, CaveComponent & cell)
+{
+  std::list< int > edges;
+  cave_map_.insert({key, {cell, {}}});
+  addEdges(key);
+  if (cell.isEntry())
+  {
+    scopes_.first = key;
+  }
+  else if (cell.isExit())
+  {
+    scopes_.second = key;
+  }
+}
+
+void zakirov::CaveLayer::addEdge(int key1, int key2)
+{
+  cave_map_[key1].second.push_back(key2);
+  cave_map_[key2].second.push_back(key1);
+}
+
+void zakirov::CaveLayer::addEdges(int key)
+{
+  if (key % cords_.first != 0)
+  {
+    addEdge(key, key - 1);
+  }
+  
+  if (key - cords_.first >= 0)
+  {
+    addEdge(key, key - cords_.first);
+  }
 }
 
 std::istream & zakirov::operator>>(std::istream & in, zakirov::CaveComponent & comp_c)
